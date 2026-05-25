@@ -57,6 +57,40 @@ def fmt_date(val):
     return ""
 
 
+def limpar_colaboradores():
+    """Busca e deleta todos os colaboradores existentes para evitar duplicatas."""
+    import re
+    req = urllib.request.Request(
+        f"{BASE_URL}/?status=todos",
+        headers={"User-Agent": "MaxGroupImport/1.0"},
+        method="GET",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            html = resp.read().decode("utf-8")
+        ids = re.findall(r'/colaborador/(\d+)/excluir', html)
+        if not ids:
+            print("  Nenhum colaborador existente para remover.")
+            return
+        print(f"  Removendo {len(ids)} colaboradores existentes...")
+        for cid in ids:
+            del_req = urllib.request.Request(
+                f"{BASE_URL}/colaborador/{cid}/excluir",
+                data=b"",
+                headers={"Content-Type": "application/x-www-form-urlencoded",
+                         "User-Agent": "MaxGroupImport/1.0"},
+                method="POST",
+            )
+            try:
+                with urllib.request.urlopen(del_req, timeout=15):
+                    pass
+            except Exception:
+                pass
+        print(f"  Limpeza concluida.")
+    except Exception as e:
+        print(f"  Erro ao limpar: {e}")
+
+
 def post_colaborador(data):
     encoded = urllib.parse.urlencode(data).encode()
     req = urllib.request.Request(
@@ -99,7 +133,7 @@ def importar_aba(ws, tem_desligamento_col, label):
                     break
             if not localizacao:
                 localizacao = "105 Asa Sul"
-                print(f"  [AVISO] Linha {i}: filial desconhecida '{filial_raw}' — {nome} → padrão '105 Asa Sul'")
+                print(f"  [AVISO] Linha {i}: filial desconhecida '{filial_raw}' -- {nome} -> padrao '105 Asa Sul'")
 
         contrato_raw = str(row[1] or "").strip().upper()
         tipo_contrato = CONTRATO_MAP.get(contrato_raw, contrato_raw or "")
@@ -152,6 +186,9 @@ def main():
     print(f"  Destino: {BASE_URL}\n")
 
     wb = openpyxl.load_workbook(PLANILHA, data_only=True)
+
+    print(">> Limpando colaboradores existentes...")
+    limpar_colaboradores()
 
     # Aba ativos — coluna 26 (índice) = Desligamento
     ws_ativos = wb["Controle RH e DP"]
