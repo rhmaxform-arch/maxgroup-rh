@@ -102,11 +102,11 @@
         <thead>
           <tr>
             <th>Nome</th>
+            <th>Cargo</th>
             <th>Empresa</th>
             <th>Localização</th>
+            <th>Contrato</th>
             <th>Admissão</th>
-            <th>Remuneração</th>
-            <th>Contato</th>
             <th>Status</th>
             <th class="text-center">Ações</th>
           </tr>
@@ -114,12 +114,15 @@
         <tbody>
           {% for col in colaboradores %}
           <tr>
-            <td class="fw-semibold">{{ col.nome_completo }}</td>
+            <td class="fw-semibold">
+              {{ col.nome_completo }}
+              {% if col.email %}<div class="text-muted small">{{ col.email }}</div>{% endif %}
+            </td>
+            <td class="small">{{ col.cargo or '—' }}</td>
             <td><span class="badge-empresa">{{ col.empresa }}</span></td>
             <td class="text-muted small"><i class="bi bi-geo-alt me-1"></i>{{ col.localizacao }}</td>
+            <td class="small">{{ col.tipo_contrato or '—' }}</td>
             <td class="small">{{ col.data_admissao|fmt_date or '—' }}</td>
-            <td class="small">{{ col.remuneracao|fmt_currency }}</td>
-            <td class="small">{{ col.contato or '—' }}</td>
             <td>
               {% if col.ativo %}
                 <span class="badge-ativo">Ativo</span>

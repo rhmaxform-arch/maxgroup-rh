@@ -41,6 +41,25 @@
           </select>
         </div>
         <div class="col-md-4">
+          <label class="form-label">Tipo de Contrato</label>
+          <select class="form-select" name="tipo_contrato">
+            <option value="">Selecione...</option>
+            {% for t in ['CLT','PJ','Estágio','Terceirizado'] %}
+            <option value="{{ t }}" {% if c and c.tipo_contrato == t %}selected{% endif %}>{{ t }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Cargo / Função</label>
+          <input type="text" class="form-control" name="cargo"
+                 value="{{ c.cargo if c else '' }}" placeholder="Ex: Vendedor, Auxiliar...">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Horário de Trabalho</label>
+          <input type="text" class="form-control" name="horario"
+                 value="{{ c.horario if c else '' }}" placeholder="Ex: Seg-Sex 8h-17h">
+        </div>
+        <div class="col-md-4">
           <label class="form-label">Data de Admissão</label>
           <input type="date" class="form-control" name="data_admissao"
                  value="{{ c.data_admissao.strftime('%Y-%m-%d') if c and c.data_admissao else '' }}">
@@ -62,10 +81,15 @@
     <div class="card-header"><i class="bi bi-person me-2"></i>Dados Pessoais</div>
     <div class="card-body">
       <div class="row g-3">
-        <div class="col-12">
+        <div class="col-md-8">
           <label class="form-label">Nome Completo <span class="text-danger">*</span></label>
           <input type="text" class="form-control" name="nome_completo" required
                  value="{{ c.nome_completo if c else '' }}" placeholder="Nome completo do colaborador">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">E-mail</label>
+          <input type="email" class="form-control" name="email"
+                 value="{{ c.email if c else '' }}" placeholder="email@exemplo.com">
         </div>
         <div class="col-md-4">
           <label class="form-label">Data de Nascimento</label>

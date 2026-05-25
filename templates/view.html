@@ -38,11 +38,12 @@
       <table class="table table-sm table-borderless mb-0">
         <tbody>
           <tr><td class="detail-label ps-3">Nascimento</td><td>{{ col.data_aniversario|fmt_date or '—' }}</td></tr>
+          <tr><td class="detail-label ps-3">E-mail</td><td>{% if col.email %}<a href="mailto:{{ col.email }}">{{ col.email }}</a>{% else %}—{% endif %}</td></tr>
+          <tr><td class="detail-label ps-3">Contato</td><td>{{ col.contato or '—' }}</td></tr>
           <tr><td class="detail-label ps-3">Nacionalidade</td><td>{{ col.nacionalidade or '—' }}</td></tr>
           <tr><td class="detail-label ps-3">Naturalidade</td><td>{{ col.naturalidade or '—' }}</td></tr>
           <tr><td class="detail-label ps-3">Nome do Pai</td><td>{{ col.nome_pai or '—' }}</td></tr>
           <tr><td class="detail-label ps-3">Nome da Mãe</td><td>{{ col.nome_mae or '—' }}</td></tr>
-          <tr><td class="detail-label ps-3">Contato</td><td>{{ col.contato or '—' }}</td></tr>
         </tbody>
       </table>
     </div>
@@ -51,12 +52,15 @@
 
   <div class="col-md-6">
   <div class="card h-100">
-    <div class="card-header"><i class="bi bi-building me-2"></i>Empresa</div>
+    <div class="card-header"><i class="bi bi-building me-2"></i>Empresa e Contrato</div>
     <div class="card-body p-0">
       <table class="table table-sm table-borderless mb-0">
         <tbody>
           <tr><td class="detail-label ps-3">Empresa</td><td><span class="badge-empresa">{{ col.empresa }}</span></td></tr>
           <tr><td class="detail-label ps-3">Localização</td><td>{{ col.localizacao }}</td></tr>
+          <tr><td class="detail-label ps-3">Tipo de Contrato</td><td>{{ col.tipo_contrato or '—' }}</td></tr>
+          <tr><td class="detail-label ps-3">Cargo / Função</td><td><strong>{{ col.cargo or '—' }}</strong></td></tr>
+          <tr><td class="detail-label ps-3">Horário</td><td>{{ col.horario or '—' }}</td></tr>
           <tr><td class="detail-label ps-3">Admissão</td><td>{{ col.data_admissao|fmt_date or '—' }}</td></tr>
           <tr><td class="detail-label ps-3">Desligamento</td><td>{{ col.data_desligamento|fmt_date or '—' }}</td></tr>
         </tbody>

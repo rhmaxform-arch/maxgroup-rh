@@ -19,7 +19,7 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
 
-LOCALIZACOES = ['315 Asa Norte', '105 Asa Sul', '103 Sudoeste', '103 Asa Norte']
+LOCALIZACOES = ['315 Asa Norte', '105 Asa Sul', '103 Asa Sul', '103 Sudoeste', '103 Asa Norte']
 EMPRESAS_INICIAIS = ['MaxGroup', 'MaxForm', 'MaxFoods', 'MaxFoods Restaurante', 'MaxPharma']
 
 
@@ -58,6 +58,10 @@ class Colaborador(db.Model):
     nome_completo = db.Column(db.String(200), nullable=False)
     empresa = db.Column(db.String(100), nullable=False)
     localizacao = db.Column(db.String(100), nullable=False)
+    tipo_contrato = db.Column(db.String(20))   # CLT, PJ, Estágio, Terceirizado
+    cargo = db.Column(db.String(100))
+    horario = db.Column(db.String(200))
+    email = db.Column(db.String(100))
     data_admissao = db.Column(db.Date)
     data_aniversario = db.Column(db.Date)
     contato = db.Column(db.String(50))
@@ -152,10 +156,8 @@ def inject_globals():
     }
 
 
-def migrate_sqlite():
-    """Adiciona colunas novas a tabelas existentes sem perder dados (SQLite)."""
-    if 'sqlite' not in app.config['SQLALCHEMY_DATABASE_URI']:
-        return
+def migrate_db():
+    """Adiciona colunas novas a tabelas existentes sem perder dados."""
     new_cols = [
         ('colaborador', 'end_cep', 'VARCHAR(10)'),
         ('colaborador', 'end_logradouro', 'VARCHAR(200)'),
@@ -164,6 +166,10 @@ def migrate_sqlite():
         ('colaborador', 'end_bairro', 'VARCHAR(100)'),
         ('colaborador', 'end_cidade', 'VARCHAR(100)'),
         ('colaborador', 'end_estado', 'VARCHAR(2)'),
+        ('colaborador', 'tipo_contrato', 'VARCHAR(20)'),
+        ('colaborador', 'cargo', 'VARCHAR(100)'),
+        ('colaborador', 'horario', 'VARCHAR(200)'),
+        ('colaborador', 'email', 'VARCHAR(100)'),
     ]
     from sqlalchemy import text
     with db.engine.connect() as conn:
@@ -215,6 +221,10 @@ def _form_to_model(form, obj=None):
     obj.nome_completo = form['nome_completo']
     obj.empresa = form['empresa']
     obj.localizacao = form['localizacao']
+    obj.tipo_contrato = form.get('tipo_contrato') or None
+    obj.cargo = form.get('cargo') or None
+    obj.horario = form.get('horario') or None
+    obj.email = form.get('email') or None
     obj.data_admissao = parse_date(form.get('data_admissao'))
     obj.data_aniversario = parse_date(form.get('data_aniversario'))
     obj.contato = form.get('contato') or None
@@ -479,7 +489,7 @@ def exportar_fopag():
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
-        migrate_sqlite()
+        migrate_db()
         if Empresa.query.count() == 0:
             for nome in EMPRESAS_INICIAIS:
                 db.session.add(Empresa(nome=nome))
