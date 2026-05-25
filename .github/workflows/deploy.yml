@@ -1,0 +1,76 @@
+name: Build and Deploy to Railway
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: rhmaxform-arch/maxgroup-rh
+  RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+  RAILWAY_SERVICE_ID: 8677ccc7-1e3b-48b5-a922-fa25de3a8887
+  RAILWAY_ENV_ID: ad1f6695-b005-45ed-b433-1fee76318309
+  RAILWAY_PROJECT_ID: baac5e50-ba69-4637-8354-3636fa225022
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+
+      - name: Update Railway service source to Docker image
+        run: |
+          curl -s -X POST https://backboard.railway.app/graphql/v2 \
+            -H "Authorization: Bearer ${{ env.RAILWAY_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d "{\"query\":\"mutation { serviceConnect(id: \\\"${{ env.RAILWAY_SERVICE_ID }}\\\", input: { image: \\\"${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}\\\" }) { id } }\"}"
+
+      - name: Set DATABASE_URL environment variable
+        run: |
+          curl -s -X POST https://backboard.railway.app/graphql/v2 \
+            -H "Authorization: Bearer ${{ env.RAILWAY_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d "{\"query\":\"mutation { variableUpsert(input: { projectId: \\\"${{ env.RAILWAY_PROJECT_ID }}\\\", environmentId: \\\"${{ env.RAILWAY_ENV_ID }}\\\", serviceId: \\\"${{ env.RAILWAY_SERVICE_ID }}\\\", name: \\\"DATABASE_URL\\\", value: \\\"postgresql://maxgroup:maxgroup2026@postgresql.railway.internal:5432/maxgroup_rh\\\" }) }\"}"
+
+      - name: Set PORT environment variable
+        run: |
+          curl -s -X POST https://backboard.railway.app/graphql/v2 \
+            -H "Authorization: Bearer ${{ env.RAILWAY_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d "{\"query\":\"mutation { variableUpsert(input: { projectId: \\\"${{ env.RAILWAY_PROJECT_ID }}\\\", environmentId: \\\"${{ env.RAILWAY_ENV_ID }}\\\", serviceId: \\\"${{ env.RAILWAY_SERVICE_ID }}\\\", name: \\\"PORT\\\", value: \\\"8000\\\" }) }\"}"
+
+      - name: Trigger Railway deployment
+        run: |
+          curl -s -X POST https://backboard.railway.app/graphql/v2 \
+            -H "Authorization: Bearer ${{ env.RAILWAY_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d "{\"query\":\"mutation { serviceInstanceDeploy(serviceId: \\\"${{ env.RAILWAY_SERVICE_ID }}\\\", environmentId: \\\"${{ env.RAILWAY_ENV_ID }}\\\", latestCommit: true) }\"}"
+
+      - name: Generate Railway domain
+        run: |
+          curl -s -X POST https://backboard.railway.app/graphql/v2 \
+            -H "Authorization: Bearer ${{ env.RAILWAY_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d "{\"query\":\"mutation { serviceInstanceDomainCreate(environmentId: \\\"${{ env.RAILWAY_ENV_ID }}\\\", serviceId: \\\"${{ env.RAILWAY_SERVICE_ID }}\\\") { domain } }\"}"
