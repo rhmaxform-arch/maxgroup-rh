@@ -6,3 +6,5 @@ __pycache__/
 .env
 instance/
 .DS_Store
+.railway/
+setup_railway.py
