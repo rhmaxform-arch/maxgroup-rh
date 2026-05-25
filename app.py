@@ -172,13 +172,20 @@ def migrate_db():
         ('colaborador', 'email', 'VARCHAR(100)'),
     ]
     from sqlalchemy import text
-    with db.engine.connect() as conn:
-        for table, col, col_type in new_cols:
-            try:
-                conn.execute(text(f'ALTER TABLE {table} ADD COLUMN {col} {col_type}'))
-                conn.commit()
-            except Exception:
-                pass
+    is_pg = 'postgresql' in app.config['SQLALCHEMY_DATABASE_URI']
+    for table, col, col_type in new_cols:
+        try:
+            if is_pg:
+                # cada ALTER roda em sua própria conexão com autocommit
+                with db.engine.connect().execution_options(isolation_level='AUTOCOMMIT') as conn:
+                    conn.execute(text(
+                        f'ALTER TABLE {table} ADD COLUMN IF NOT EXISTS {col} {col_type}'))
+            else:
+                with db.engine.connect() as conn:
+                    conn.execute(text(f'ALTER TABLE {table} ADD COLUMN {col} {col_type}'))
+                    conn.commit()
+        except Exception:
+            pass
 
 
 # ── Colaboradores ──────────────────────────────────────────────────────────────
