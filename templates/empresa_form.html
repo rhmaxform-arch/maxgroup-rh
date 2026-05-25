@@ -1,0 +1,149 @@
+{% extends 'base.html' %}
+{% block title %}{{ title }} — MaxGroup RH{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center mb-3">
+  <a href="/empresas" class="btn btn-outline-secondary btn-sm me-3">
+    <i class="bi bi-arrow-left"></i>
+  </a>
+  <h4 class="mb-0">
+    <i class="bi bi-building me-2" style="color:var(--mg-gold)"></i>{{ title }}
+  </h4>
+</div>
+
+{% set e = empresa %}
+
+<form method="post" autocomplete="off">
+<div class="row g-4">
+
+  <!-- IDENTIFICAÇÃO -->
+  <div class="col-12">
+  <div class="card">
+    <div class="card-header"><i class="bi bi-card-text me-2"></i>Identificação</div>
+    <div class="card-body">
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label class="form-label">Nome da Empresa <span class="text-danger">*</span></label>
+          <input type="text" class="form-control" name="nome" required
+                 value="{{ e.nome if e else '' }}" placeholder="Ex: MaxFoods">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">CNPJ</label>
+          <input type="text" class="form-control" name="cnpj" id="cnpj"
+                 value="{{ e.cnpj if e else '' }}" placeholder="00.000.000/0000-00" maxlength="18">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Telefone</label>
+          <input type="text" class="form-control" name="telefone"
+                 value="{{ e.telefone if e else '' }}" placeholder="(61) 3000-0000">
+        </div>
+        <div class="col-md-5">
+          <label class="form-label">E-mail</label>
+          <input type="email" class="form-control" name="email"
+                 value="{{ e.email if e else '' }}" placeholder="contato@empresa.com.br">
+        </div>
+      </div>
+    </div>
+  </div>
+  </div>
+
+  <!-- ENDEREÇO -->
+  <div class="col-12">
+  <div class="card">
+    <div class="card-header"><i class="bi bi-geo-alt me-2"></i>Endereço</div>
+    <div class="card-body">
+      <div class="row g-3">
+        <div class="col-md-3">
+          <label class="form-label">CEP</label>
+          <input type="text" class="form-control" name="cep" id="cep"
+                 value="{{ e.cep if e else '' }}" placeholder="00000-000" maxlength="9">
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">Logradouro</label>
+          <input type="text" class="form-control" name="logradouro" id="logradouro"
+                 value="{{ e.logradouro if e else '' }}" placeholder="Rua, Avenida, Quadra...">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Número</label>
+          <input type="text" class="form-control" name="numero"
+                 value="{{ e.numero if e else '' }}" placeholder="Ex: 315">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Complemento</label>
+          <input type="text" class="form-control" name="complemento"
+                 value="{{ e.complemento if e else '' }}" placeholder="Sala, Bloco, Andar...">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Bairro</label>
+          <input type="text" class="form-control" name="bairro" id="bairro"
+                 value="{{ e.bairro if e else '' }}">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Cidade</label>
+          <input type="text" class="form-control" name="cidade" id="cidade"
+                 value="{{ e.cidade if e else '' }}">
+        </div>
+        <div class="col-md-2">
+          <label class="form-label">UF</label>
+          <select class="form-select" name="estado" id="estado">
+            <option value="">—</option>
+            {% for uf in ['AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG','PA','PB','PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO'] %}
+            <option value="{{ uf }}" {% if e and e.estado == uf %}selected{% endif %}>{{ uf }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+    </div>
+  </div>
+  </div>
+
+  <!-- Actions -->
+  <div class="col-12 pb-2">
+    <div class="d-flex gap-2">
+      <button type="submit" class="btn btn-primary btn-lg px-5">
+        <i class="bi bi-check-lg me-2"></i>{{ 'Salvar Alterações' if e else 'Cadastrar Empresa' }}
+      </button>
+      <a href="/empresas" class="btn btn-outline-secondary btn-lg px-4">Cancelar</a>
+    </div>
+  </div>
+
+</div>
+</form>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  // Máscara CNPJ: 00.000.000/0000-00
+  document.getElementById('cnpj').addEventListener('input', function(e) {
+    let v = e.target.value.replace(/\D/g, '').slice(0, 14);
+    if (v.length > 12) v = v.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{0,2})/, '$1.$2.$3/$4-$5');
+    else if (v.length > 8) v = v.replace(/(\d{2})(\d{3})(\d{3})(\d{0,4})/, '$1.$2.$3/$4');
+    else if (v.length > 5) v = v.replace(/(\d{2})(\d{3})(\d{0,3})/, '$1.$2.$3');
+    else if (v.length > 2) v = v.replace(/(\d{2})(\d{0,3})/, '$1.$2');
+    e.target.value = v;
+  });
+
+  // Máscara CEP: 00000-000
+  document.getElementById('cep').addEventListener('input', function(e) {
+    let v = e.target.value.replace(/\D/g, '').slice(0, 8);
+    if (v.length > 5) v = v.replace(/(\d{5})(\d{0,3})/, '$1-$2');
+    e.target.value = v;
+  });
+
+  // Busca CEP automaticamente via ViaCEP
+  document.getElementById('cep').addEventListener('blur', function() {
+    const cep = this.value.replace(/\D/g, '');
+    if (cep.length !== 8) return;
+    fetch(`https://viacep.com.br/ws/${cep}/json/`)
+      .then(r => r.json())
+      .then(d => {
+        if (d.erro) return;
+        document.getElementById('logradouro').value = d.logradouro || '';
+        document.getElementById('bairro').value     = d.bairro     || '';
+        document.getElementById('cidade').value     = d.localidade || '';
+        document.getElementById('estado').value     = d.uf         || '';
+      })
+      .catch(() => {});
+  });
+</script>
+{% endblock %}

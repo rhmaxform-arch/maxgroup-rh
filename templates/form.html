@@ -1,0 +1,297 @@
+{% extends 'base.html' %}
+{% block title %}{{ title }} — MaxGroup RH{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center mb-3">
+  <a href="{{ '/colaborador/' ~ colaborador.id if colaborador else '/' }}" class="btn btn-outline-secondary btn-sm me-3">
+    <i class="bi bi-arrow-left"></i>
+  </a>
+  <h4 class="mb-0" style="color:var(--mg-black)">
+    <i class="bi bi-person-vcard me-2" style="color:var(--mg-gold)"></i>{{ title }}
+  </h4>
+</div>
+
+{% set c = colaborador %}
+
+<form method="post" autocomplete="off">
+<div class="row g-4">
+
+  <!-- EMPRESA E LOCAL -->
+  <div class="col-12">
+  <div class="card">
+    <div class="card-header"><i class="bi bi-building me-2"></i>Empresa e Localização</div>
+    <div class="card-body">
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label class="form-label">Empresa <span class="text-danger">*</span></label>
+          <select class="form-select" name="empresa" required>
+            <option value="">Selecione...</option>
+            {% for e in empresas %}
+            <option value="{{ e }}" {% if c and c.empresa == e %}selected{% endif %}>{{ e }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">Localização <span class="text-danger">*</span></label>
+          <select class="form-select" name="localizacao" required>
+            <option value="">Selecione...</option>
+            {% for l in localizacoes %}
+            <option value="{{ l }}" {% if c and c.localizacao == l %}selected{% endif %}>{{ l }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Data de Admissão</label>
+          <input type="date" class="form-control" name="data_admissao"
+                 value="{{ c.data_admissao.strftime('%Y-%m-%d') if c and c.data_admissao else '' }}">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Data de Desligamento</label>
+          <input type="date" class="form-control" name="data_desligamento"
+                 value="{{ c.data_desligamento.strftime('%Y-%m-%d') if c and c.data_desligamento else '' }}">
+          <div class="form-text">Deixe em branco para colaborador ativo</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  </div>
+
+  <!-- DADOS PESSOAIS -->
+  <div class="col-12">
+  <div class="card">
+    <div class="card-header"><i class="bi bi-person me-2"></i>Dados Pessoais</div>
+    <div class="card-body">
+      <div class="row g-3">
+        <div class="col-12">
+          <label class="form-label">Nome Completo <span class="text-danger">*</span></label>
+          <input type="text" class="form-control" name="nome_completo" required
+                 value="{{ c.nome_completo if c else '' }}" placeholder="Nome completo do colaborador">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Data de Nascimento</label>
+          <input type="date" class="form-control" name="data_aniversario"
+                 value="{{ c.data_aniversario.strftime('%Y-%m-%d') if c and c.data_aniversario else '' }}">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Nacionalidade</label>
+          <input type="text" class="form-control" name="nacionalidade"
+                 value="{{ c.nacionalidade if c else '' }}" placeholder="Ex: Brasileira">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Naturalidade</label>
+          <input type="text" class="form-control" name="naturalidade"
+                 value="{{ c.naturalidade if c else '' }}" placeholder="Cidade/UF de nascimento">
+        </div>
+        <div class="col-md-5">
+          <label class="form-label">Nome do Pai</label>
+          <input type="text" class="form-control" name="nome_pai"
+                 value="{{ c.nome_pai if c else '' }}">
+        </div>
+        <div class="col-md-5">
+          <label class="form-label">Nome da Mãe</label>
+          <input type="text" class="form-control" name="nome_mae"
+                 value="{{ c.nome_mae if c else '' }}">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Contato</label>
+          <input type="text" class="form-control" name="contato"
+                 value="{{ c.contato if c else '' }}" placeholder="(61) 9 0000-0000">
+        </div>
+      </div>
+    </div>
+  </div>
+  </div>
+
+  <!-- DOCUMENTOS -->
+  <div class="col-12">
+  <div class="card">
+    <div class="card-header"><i class="bi bi-card-text me-2"></i>Documentos</div>
+    <div class="card-body">
+      <div class="row g-3">
+        <div class="col-md-4">
+          <label class="form-label">CPF</label>
+          <input type="text" class="form-control" name="cpf" id="cpf"
+                 value="{{ c.cpf if c else '' }}" placeholder="000.000.000-00" maxlength="14">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">RG</label>
+          <input type="text" class="form-control" name="rg"
+                 value="{{ c.rg if c else '' }}">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Data de Expedição do RG</label>
+          <input type="date" class="form-control" name="data_expedicao_rg"
+                 value="{{ c.data_expedicao_rg.strftime('%Y-%m-%d') if c and c.data_expedicao_rg else '' }}">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Órgão Expedidor (Local do RG)</label>
+          <input type="text" class="form-control" name="local_expedicao_rg"
+                 value="{{ c.local_expedicao_rg if c else '' }}" placeholder="Ex: SSP/DF">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Número da CTPS</label>
+          <input type="text" class="form-control" name="numero_ctps"
+                 value="{{ c.numero_ctps if c else '' }}">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Data de Emissão da CTPS</label>
+          <input type="date" class="form-control" name="data_emissao_ctps"
+                 value="{{ c.data_emissao_ctps.strftime('%Y-%m-%d') if c and c.data_emissao_ctps else '' }}">
+        </div>
+      </div>
+    </div>
+  </div>
+  </div>
+
+  <!-- ENDEREÇO RESIDENCIAL -->
+  <div class="col-12">
+  <div class="card">
+    <div class="card-header"><i class="bi bi-house me-2"></i>Endereço Residencial</div>
+    <div class="card-body">
+      <div class="row g-3">
+        <div class="col-md-3">
+          <label class="form-label">CEP</label>
+          <input type="text" class="form-control" name="end_cep" id="end_cep"
+                 value="{{ c.end_cep if c else '' }}" placeholder="00000-000" maxlength="9">
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">Logradouro</label>
+          <input type="text" class="form-control" name="end_logradouro" id="end_logradouro"
+                 value="{{ c.end_logradouro if c else '' }}" placeholder="Rua, Quadra, Avenida...">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Número</label>
+          <input type="text" class="form-control" name="end_numero"
+                 value="{{ c.end_numero if c else '' }}">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Complemento</label>
+          <input type="text" class="form-control" name="end_complemento"
+                 value="{{ c.end_complemento if c else '' }}" placeholder="Apto, Bloco...">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Bairro</label>
+          <input type="text" class="form-control" name="end_bairro" id="end_bairro"
+                 value="{{ c.end_bairro if c else '' }}">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Cidade</label>
+          <input type="text" class="form-control" name="end_cidade" id="end_cidade"
+                 value="{{ c.end_cidade if c else '' }}">
+        </div>
+        <div class="col-md-2">
+          <label class="form-label">UF</label>
+          <select class="form-select" name="end_estado" id="end_estado">
+            <option value="">—</option>
+            {% for uf in ['AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG','PA','PB','PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO'] %}
+            <option value="{{ uf }}" {% if c and c.end_estado == uf %}selected{% endif %}>{{ uf }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+    </div>
+  </div>
+  </div>
+
+  <!-- DADOS BANCÁRIOS -->
+  <div class="col-12">
+  <div class="card">
+    <div class="card-header"><i class="bi bi-bank me-2"></i>Dados Bancários</div>
+    <div class="card-body">
+      <div class="row g-3">
+        <div class="col-md-3">
+          <label class="form-label">Número da Agência</label>
+          <input type="text" class="form-control" name="numero_agencia"
+                 value="{{ c.numero_agencia if c else '' }}" placeholder="0000-0">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Número da Conta</label>
+          <input type="text" class="form-control" name="numero_conta"
+                 value="{{ c.numero_conta if c else '' }}" placeholder="00000-0">
+        </div>
+      </div>
+    </div>
+  </div>
+  </div>
+
+  <!-- REMUNERAÇÃO -->
+  <div class="col-12">
+  <div class="card">
+    <div class="card-header"><i class="bi bi-cash-stack me-2"></i>Remuneração e Benefícios</div>
+    <div class="card-body">
+      <div class="row g-3">
+
+        {% macro money_field(label, name, val) %}
+        <div class="col-md-3 col-sm-6">
+          <label class="form-label">{{ label }}</label>
+          <div class="input-group">
+            <span class="input-group-text">R$</span>
+            <input type="number" class="form-control" name="{{ name }}" step="0.01" min="0"
+                   value="{{ '%.2f'|format(val) if val else '0.00' }}">
+          </div>
+        </div>
+        {% endmacro %}
+
+        {{ money_field('Remuneração',        'remuneracao',       c.remuneracao       if c else 0) }}
+        {{ money_field('Premiação',          'premiacao',         c.premiacao         if c else 0) }}
+        {{ money_field('Vale-Transporte',    'vale_transporte',   c.vale_transporte   if c else 0) }}
+        {{ money_field('Auxílio-Transporte', 'auxilio_transporte',c.auxilio_transporte if c else 0) }}
+        {{ money_field('Vale-Alimentação',   'vale_alimentacao',  c.vale_alimentacao  if c else 0) }}
+        {{ money_field('Assiduidade',        'assiduidade',       c.assiduidade       if c else 0) }}
+        {{ money_field('Comissão',           'comissao',          c.comissao          if c else 0) }}
+
+      </div>
+    </div>
+  </div>
+  </div>
+
+  <!-- Actions -->
+  <div class="col-12 pb-2">
+    <div class="d-flex gap-2">
+      <button type="submit" class="btn btn-primary btn-lg px-5">
+        <i class="bi bi-check-lg me-2"></i>{{ 'Salvar Alterações' if c else 'Cadastrar Colaborador' }}
+      </button>
+      <a href="{{ '/colaborador/' ~ c.id if c else '/' }}" class="btn btn-outline-secondary btn-lg px-4">
+        Cancelar
+      </a>
+    </div>
+  </div>
+
+</div>
+</form>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  // Máscara CPF
+  document.getElementById('cpf').addEventListener('input', function(e) {
+    let v = e.target.value.replace(/\D/g, '').slice(0, 11);
+    if (v.length > 9) v = v.replace(/(\d{3})(\d{3})(\d{3})(\d{0,2})/, '$1.$2.$3-$4');
+    else if (v.length > 6) v = v.replace(/(\d{3})(\d{3})(\d{0,3})/, '$1.$2.$3');
+    else if (v.length > 3) v = v.replace(/(\d{3})(\d{0,3})/, '$1.$2');
+    e.target.value = v;
+  });
+
+  // Máscara CEP do endereço residencial
+  document.getElementById('end_cep').addEventListener('input', function(e) {
+    let v = e.target.value.replace(/\D/g, '').slice(0, 8);
+    if (v.length > 5) v = v.replace(/(\d{5})(\d{0,3})/, '$1-$2');
+    e.target.value = v;
+  });
+
+  // Busca CEP via ViaCEP para endereço do colaborador
+  document.getElementById('end_cep').addEventListener('blur', function() {
+    const cep = this.value.replace(/\D/g, '');
+    if (cep.length !== 8) return;
+    fetch(`https://viacep.com.br/ws/${cep}/json/`)
+      .then(r => r.json())
+      .then(d => {
+        if (d.erro) return;
+        document.getElementById('end_logradouro').value = d.logradouro || '';
+        document.getElementById('end_bairro').value     = d.bairro     || '';
+        document.getElementById('end_cidade').value     = d.localidade || '';
+        document.getElementById('end_estado').value     = d.uf         || '';
+      }).catch(() => {});
+  });
+</script>
+{% endblock %}

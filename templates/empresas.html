@@ -1,0 +1,106 @@
+{% extends 'base.html' %}
+{% block title %}Empresas — MaxGroup RH{% endblock %}
+
+{% block content %}
+
+<div class="d-flex align-items-center justify-content-between mb-4">
+  <h4 class="mb-0">
+    <i class="bi bi-building me-2" style="color:var(--mg-gold)"></i>Empresas do Grupo
+  </h4>
+  <a href="/empresa/nova" class="btn btn-primary">
+    <i class="bi bi-plus-lg me-1"></i>Nova Empresa
+  </a>
+</div>
+
+{% if empresas %}
+<div class="row g-4">
+  {% for emp in empresas %}
+  <div class="col-md-6 col-xl-4">
+    <div class="card h-100">
+      <div class="card-header d-flex align-items-center justify-content-between py-2">
+        <span style="font-size:1rem">
+          <i class="bi bi-building me-2"></i>{{ emp.nome }}
+        </span>
+        <div class="d-flex gap-1">
+          <a href="/empresa/{{ emp.id }}/editar" class="btn btn-outline-primary btn-sm py-0 px-2" title="Editar">
+            <i class="bi bi-pencil"></i>
+          </a>
+          <button class="btn btn-outline-danger btn-sm py-0 px-2" title="Excluir"
+            onclick="confirmarExclusao({{ emp.id }}, '{{ emp.nome|replace("'","\\'")|replace('"','\\"') }}')">
+            <i class="bi bi-trash"></i>
+          </button>
+        </div>
+      </div>
+      <div class="card-body p-0">
+        <table class="table table-sm table-borderless mb-0">
+          <tbody>
+            <tr>
+              <td class="detail-label ps-3" style="width:40%">CNPJ</td>
+              <td>
+                {% if emp.cnpj %}
+                  <span class="fw-semibold" style="letter-spacing:.5px">{{ emp.cnpj }}</span>
+                {% else %}
+                  <span class="text-muted small">Não informado</span>
+                {% endif %}
+              </td>
+            </tr>
+            <tr>
+              <td class="detail-label ps-3">Endereço</td>
+              <td class="small">
+                {% if emp.logradouro %}
+                  {{ emp.logradouro }}{% if emp.numero %}, {{ emp.numero }}{% endif %}
+                  {% if emp.complemento %} — {{ emp.complemento }}{% endif %}<br>
+                  {% if emp.bairro %}{{ emp.bairro }} &bull; {% endif %}
+                  {% if emp.cidade %}{{ emp.cidade }}{% if emp.estado %}/{{ emp.estado }}{% endif %}{% endif %}
+                  {% if emp.cep %}<br><span class="text-muted">CEP {{ emp.cep }}</span>{% endif %}
+                {% else %}
+                  <span class="text-muted">Não informado</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% if emp.telefone %}
+            <tr>
+              <td class="detail-label ps-3">Telefone</td>
+              <td class="small">{{ emp.telefone }}</td>
+            </tr>
+            {% endif %}
+            {% if emp.email %}
+            <tr>
+              <td class="detail-label ps-3">E-mail</td>
+              <td class="small">{{ emp.email }}</td>
+            </tr>
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+{% else %}
+<div class="card">
+  <div class="card-body text-center py-5">
+    <i class="bi bi-building" style="font-size:3.5rem;color:var(--mg-border)"></i>
+    <p class="mt-3 mb-3 text-muted">Nenhuma empresa cadastrada.</p>
+    <a href="/empresa/nova" class="btn btn-primary">
+      <i class="bi bi-plus-lg me-1"></i>Cadastrar primeira empresa
+    </a>
+  </div>
+</div>
+{% endif %}
+
+<form id="formExcluir" method="post" style="display:none"></form>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function confirmarExclusao(id, nome) {
+  if (confirm(`Excluir a empresa "${nome}"?\n\nOs colaboradores vinculados não serão afetados.`)) {
+    const f = document.getElementById('formExcluir');
+    f.action = `/empresa/${id}/excluir`;
+    f.submit();
+  }
+}
+</script>
+{% endblock %}
