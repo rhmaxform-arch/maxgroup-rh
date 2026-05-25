@@ -52,7 +52,7 @@ jobs:
           curl -s -X POST https://backboard.railway.app/graphql/v2 \
             -H "Authorization: Bearer ${{ env.RAILWAY_TOKEN }}" \
             -H "Content-Type: application/json" \
-            -d "{\"query\":\"mutation { variableUpsert(input: { projectId: \\\"${{ env.RAILWAY_PROJECT_ID }}\\\", environmentId: \\\"${{ env.RAILWAY_ENV_ID }}\\\", serviceId: \\\"${{ env.RAILWAY_SERVICE_ID }}\\\", name: \\\"DATABASE_URL\\\", value: \\\"postgresql://maxgroup:maxgroup2026@postgresql.railway.internal:5432/maxgroup_rh\\\" }) }\"}"
+            -d "{\"query\":\"mutation { variableUpsert(input: { projectId: \\\"${{ env.RAILWAY_PROJECT_ID }}\\\", environmentId: \\\"${{ env.RAILWAY_ENV_ID }}\\\", serviceId: \\\"${{ env.RAILWAY_SERVICE_ID }}\\\", name: \\\"DATABASE_URL\\\", value: \\\"postgresql://postgres:MaxGroup2026RH@postgres.railway.internal:5432/railway\\\" }) }\"}"
 
       - name: Set PORT environment variable
         run: |
