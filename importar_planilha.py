@@ -75,7 +75,8 @@ def limpar_colaboradores():
     try:
         with urllib.request.urlopen(req, timeout=15) as resp:
             html = resp.read().decode("utf-8")
-        ids = re.findall(r'/colaborador/(\d+)/excluir', html)
+        # O link de editar aparece no HTML; o de excluir é via JS (não aparece)
+        ids = list(dict.fromkeys(re.findall(r'/colaborador/(\d+)/editar', html)))
         if not ids:
             print("  Nenhum colaborador existente para remover.")
             return
