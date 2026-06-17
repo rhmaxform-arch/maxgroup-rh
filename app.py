@@ -1,11 +1,69 @@
 import os
+import calendar
 from flask import Flask, render_template, request, redirect, url_for, flash, send_file
 from flask_sqlalchemy import SQLAlchemy
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 import io
 import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
+
+
+# ── Calendário de feriados e dias úteis ────────────────────────────────────────
+
+def _pascoa(ano):
+    """Retorna a data da Páscoa pelo algoritmo de Butcher."""
+    a = ano % 19
+    b, c = divmod(ano, 100)
+    d, e = divmod(b, 4)
+    f = (b + 8) // 25
+    g = (b - f + 1) // 3
+    h = (19 * a + b - d - g + 15) % 30
+    i, k = divmod(c, 4)
+    l = (32 + 2 * e + 2 * i - h - k) % 7
+    m = (a + 11 * h + 22 * l) // 451
+    mes = (h + l - 7 * m + 114) // 31
+    dia = (h + l - 7 * m + 114) % 31 + 1
+    return date(ano, mes, dia)
+
+
+def feriados_nacionais(ano):
+    """Conjunto de feriados nacionais brasileiros para o ano."""
+    pascoa = _pascoa(ano)
+    fixos = {
+        date(ano, 1,  1),   # Confraternização Universal
+        date(ano, 4,  21),  # Tiradentes
+        date(ano, 5,  1),   # Dia do Trabalho
+        date(ano, 9,  7),   # Independência do Brasil
+        date(ano, 10, 12),  # N. Sra. Aparecida
+        date(ano, 11, 2),   # Finados
+        date(ano, 11, 15),  # Proclamação da República
+        date(ano, 11, 20),  # Consciência Negra
+        date(ano, 12, 25),  # Natal
+    }
+    moveis = {
+        pascoa - timedelta(days=48),  # Segunda de Carnaval
+        pascoa - timedelta(days=47),  # Terça de Carnaval
+        pascoa - timedelta(days=2),   # Sexta-feira Santa
+        pascoa + timedelta(days=60),  # Corpus Christi
+    }
+    return fixos | moveis
+
+
+def dias_uteis(ano, mes):
+    """Conta dias úteis (seg–sex, excluindo feriados nacionais) no mês indicado."""
+    fer = feriados_nacionais(ano)
+    _, num_days = calendar.monthrange(ano, mes)
+    return sum(
+        1 for d in range(1, num_days + 1)
+        if date(ano, mes, d).weekday() < 5 and date(ano, mes, d) not in fer
+    )
+
+
+def proximo_mes_ano_mes(hoje=None):
+    """Retorna (ano, mes) do mês seguinte ao fornecido (ou hoje)."""
+    ref = hoje or date.today()
+    return (ref.year + 1, 1) if ref.month == 12 else (ref.year, ref.month + 1)
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'maxgroup-rh-2026-secure')
@@ -361,8 +419,20 @@ def _form_to_empresa(form, obj=None):
 @app.route('/exportar-fopag')
 def exportar_fopag():
     empresa_filtro = request.args.get('empresa', '')
-    localizacao = request.args.get('localizacao', '')
-    mes_ref = request.args.get('mes_ref', datetime.now().strftime('%Y-%m'))
+    localizacao    = request.args.get('localizacao', '')
+
+    # Padrão: mês SEGUINTE ao atual (período de referência para pagamento)
+    ano_prox, mes_prox = proximo_mes_ano_mes()
+    default_mes = f'{ano_prox:04d}-{mes_prox:02d}'
+    mes_ref = request.args.get('mes_ref', default_mes)
+
+    try:
+        ano_ref, mes_ref_num = map(int, mes_ref.split('-'))
+    except Exception:
+        ano_ref, mes_ref_num = ano_prox, mes_prox
+
+    # Dias úteis do período de referência (exclui sáb, dom e feriados nacionais)
+    du = dias_uteis(ano_ref, mes_ref_num)
 
     query = Colaborador.query.filter(Colaborador.data_desligamento == None)
     if empresa_filtro:
@@ -372,35 +442,39 @@ def exportar_fopag():
 
     colaboradores = query.order_by(Colaborador.empresa, Colaborador.nome_completo).all()
 
-    try:
-        mes_nome = datetime.strptime(mes_ref + '-01', '%Y-%m-%d').strftime('%B %Y').upper()
-    except Exception:
-        mes_nome = mes_ref
+    MESES_PT = {1:'Janeiro',2:'Fevereiro',3:'Março',4:'Abril',5:'Maio',6:'Junho',
+                7:'Julho',8:'Agosto',9:'Setembro',10:'Outubro',11:'Novembro',12:'Dezembro'}
+    mes_nome = f'{MESES_PT[mes_ref_num]} {ano_ref}'.upper()
 
     wb = openpyxl.Workbook()
     ws = wb.active
     ws.title = 'FOPAG'
 
     PRETO = '141414'
-    OURO = 'C9A84C'
+    OURO  = 'C9A84C'
 
     def borda():
         s = Side(style='thin', color='D0C8B0')
         return Border(left=s, right=s, top=s, bottom=s)
 
+    # Linha 1 — título
     ws.merge_cells('A1:S1')
     t = ws['A1']
     t.value = 'MAXGROUP — FOLHA DE PAGAMENTO'
-    t.font = Font(name='Calibri', bold=True, size=18, color=OURO)
-    t.fill = PatternFill(start_color=PRETO, end_color=PRETO, fill_type='solid')
+    t.font      = Font(name='Calibri', bold=True, size=18, color=OURO)
+    t.fill      = PatternFill(start_color=PRETO, end_color=PRETO, fill_type='solid')
     t.alignment = Alignment(horizontal='center', vertical='center')
     ws.row_dimensions[1].height = 38
 
+    # Linha 2 — competência e dias úteis
     ws.merge_cells('A2:S2')
     t2 = ws['A2']
-    t2.value = f'Competência: {mes_nome}' + (f'   |   {empresa_filtro}' if empresa_filtro else '') + (f'   |   {localizacao}' if localizacao else '')
-    t2.font = Font(name='Calibri', size=11, color='888888')
-    t2.fill = PatternFill(start_color='1E1E1E', end_color='1E1E1E', fill_type='solid')
+    filtros = (f'   |   {empresa_filtro}' if empresa_filtro else '') + \
+              (f'   |   {localizacao}'    if localizacao    else '')
+    t2.value = (f'Competência: 01 a {calendar.monthrange(ano_ref, mes_ref_num)[1]:02d}/'
+                f'{mes_ref_num:02d}/{ano_ref}   |   Dias úteis: {du}' + filtros)
+    t2.font      = Font(name='Calibri', size=11, color='888888')
+    t2.fill      = PatternFill(start_color='1E1E1E', end_color='1E1E1E', fill_type='solid')
     t2.alignment = Alignment(horizontal='center', vertical='center')
     ws.row_dimensions[2].height = 20
     ws.row_dimensions[3].height = 6
@@ -408,21 +482,24 @@ def exportar_fopag():
     HDR_ROW = 4
     ws.row_dimensions[HDR_ROW].height = 40
 
+    vt_label = f'V. TRANSPORTE\n({du} dias)'
+    va_label = f'V. ALIMENTAÇÃO\n({du} dias)'
+
     columns = [
         ('Nº', 4), ('NOME COMPLETO', 36), ('EMPRESA', 22), ('LOCALIZAÇÃO', 18),
         ('ADMISSÃO', 13), ('CPF', 16), ('RG', 14), ('CTPS', 14), ('CONTATO', 16),
         ('AGÊNCIA', 10), ('CONTA', 14),
-        ('REMUNERAÇÃO', 16), ('PREMIAÇÃO', 14), ('V. TRANSPORTE', 15),
-        ('AUX. TRANSPORTE', 17), ('V. ALIMENTAÇÃO', 15),
+        ('REMUNERAÇÃO', 16), ('PREMIAÇÃO', 14), (vt_label, 15),
+        ('AUX. TRANSPORTE', 17), (va_label, 16),
         ('ASSIDUIDADE', 14), ('COMISSÃO', 13), ('TOTAL', 16),
     ]
 
     for ci, (label, width) in enumerate(columns, 1):
         c = ws.cell(row=HDR_ROW, column=ci, value=label)
-        c.font = Font(name='Calibri', bold=True, color=OURO, size=10)
-        c.fill = PatternFill(start_color=PRETO, end_color=PRETO, fill_type='solid')
+        c.font      = Font(name='Calibri', bold=True, color=OURO, size=10)
+        c.fill      = PatternFill(start_color=PRETO, end_color=PRETO, fill_type='solid')
         c.alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
-        c.border = borda()
+        c.border    = borda()
         ws.column_dimensions[get_column_letter(ci)].width = width
 
     CURR_FMT = '"R$"#,##0.00'
@@ -431,31 +508,42 @@ def exportar_fopag():
         row = HDR_ROW + i
         ws.row_dimensions[row].height = 17
         fill_color = 'FAFAF7' if i % 2 == 0 else 'FFFFFF'
-        row_fill = PatternFill(start_color=fill_color, end_color=fill_color, fill_type='solid')
-        base_font = Font(name='Calibri', size=10)
+        row_fill   = PatternFill(start_color=fill_color, end_color=fill_color, fill_type='solid')
+        base_font  = Font(name='Calibri', size=10)
+
+        # VT e VA calculados pelo número de dias úteis do período de referência.
+        # O auxilio_transporte é valor fixo — não multiplica.
+        vt_mensal = round((col.vale_transporte   or 0) * du, 2)
+        va_mensal = round((col.vale_alimentacao  or 0) * du, 2)
+
+        total = sum(filter(None, [
+            col.remuneracao, col.premiacao,
+            vt_mensal, col.auxilio_transporte,
+            va_mensal, col.assiduidade, col.comissao
+        ]))
 
         values = [
             i, col.nome_completo, col.empresa, col.localizacao,
             col.data_admissao, col.cpf, col.rg, col.numero_ctps, col.contato,
             col.numero_agencia, col.numero_conta,
-            col.remuneracao or 0, col.premiacao or 0, col.vale_transporte or 0,
-            col.auxilio_transporte or 0, col.vale_alimentacao or 0,
-            col.assiduidade or 0, col.comissao or 0, col.total_proventos,
+            col.remuneracao or 0, col.premiacao or 0, vt_mensal,
+            col.auxilio_transporte or 0, va_mensal,
+            col.assiduidade or 0, col.comissao or 0, total,
         ]
 
         for ci, val in enumerate(values, 1):
             c = ws.cell(row=row, column=ci, value=val)
-            c.font = base_font
-            c.fill = row_fill
+            c.font   = base_font
+            c.fill   = row_fill
             c.border = borda()
             if ci == 1:
                 c.alignment = Alignment(horizontal='center', vertical='center')
             elif ci == 5 and isinstance(val, date):
                 c.number_format = 'DD/MM/YYYY'
-                c.alignment = Alignment(horizontal='center', vertical='center')
+                c.alignment     = Alignment(horizontal='center', vertical='center')
             elif ci >= 12:
                 c.number_format = CURR_FMT
-                c.alignment = Alignment(horizontal='right', vertical='center')
+                c.alignment     = Alignment(horizontal='right', vertical='center')
             else:
                 c.alignment = Alignment(horizontal='left', vertical='center')
 
@@ -463,20 +551,21 @@ def exportar_fopag():
         tot_row = HDR_ROW + len(colaboradores) + 1
         ws.row_dimensions[tot_row].height = 22
         ws.merge_cells(f'A{tot_row}:K{tot_row}')
-        lbl = ws.cell(row=tot_row, column=1, value=f'TOTAL  ({len(colaboradores)} colaboradores ativos)')
-        lbl.font = Font(name='Calibri', bold=True, color=OURO, size=11)
-        lbl.fill = PatternFill(start_color=PRETO, end_color=PRETO, fill_type='solid')
+        lbl = ws.cell(row=tot_row, column=1,
+                      value=f'TOTAL  ({len(colaboradores)} colaboradores ativos)')
+        lbl.font      = Font(name='Calibri', bold=True, color=OURO, size=11)
+        lbl.fill      = PatternFill(start_color=PRETO, end_color=PRETO, fill_type='solid')
         lbl.alignment = Alignment(horizontal='center', vertical='center')
-        lbl.border = borda()
+        lbl.border    = borda()
         for ci in range(12, 20):
             col_ltr = get_column_letter(ci)
             c = ws.cell(row=tot_row, column=ci,
                         value=f'=SUM({col_ltr}{HDR_ROW+1}:{col_ltr}{HDR_ROW+len(colaboradores)})')
-            c.font = Font(name='Calibri', bold=True, color=OURO, size=11)
-            c.fill = PatternFill(start_color=PRETO, end_color=PRETO, fill_type='solid')
+            c.font      = Font(name='Calibri', bold=True, color=OURO, size=11)
+            c.fill      = PatternFill(start_color=PRETO, end_color=PRETO, fill_type='solid')
             c.number_format = CURR_FMT
             c.alignment = Alignment(horizontal='right', vertical='center')
-            c.border = borda()
+            c.border    = borda()
 
     ws.freeze_panes = f'A{HDR_ROW + 1}'
 
